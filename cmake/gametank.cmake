@@ -1,8 +1,10 @@
-# GameTank programs with llvm-mos. A project's CMakeLists.txt includes this before project(),
-# since it picks the compiler (gametank-toolchain.cmake), then adds its cartridge image:
+# GameTank programs with llvm-mos. A project's CMakeLists.txt finds this (through
+# gametank-llvm-mos-config.cmake) before project(), since it picks the compiler
+# (gametank-toolchain.cmake), then adds its cartridge image. GAMETANK_LLVM_MOS is the
+# gametank-llvm-mos folder:
 #
 #   cmake_minimum_required(VERSION 3.21)
-#   include(path/to/gametank-llvm-mos/cmake/gametank.cmake)
+#   find_package(gametank-llvm-mos REQUIRED HINTS "$ENV{GAMETANK_LLVM_MOS}")
 #   project(mygame C ASM)
 #   gametank_add_rom(mygame main.c player.c)
 #

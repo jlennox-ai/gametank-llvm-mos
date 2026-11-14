@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.21)
 
-# gametank-llvm-mos is the folder above this one. Included before project(): it picks the compiler.
-include("${CMAKE_CURRENT_LIST_DIR}/../cmake/gametank.cmake")
+# GAMETANK_LLVM_MOS is the gametank-llvm-mos folder (build.sh and build.bat set it if it isn't).
+# Found before project(): it picks the compiler.
+find_package(gametank-llvm-mos REQUIRED HINTS "$ENV{GAMETANK_LLVM_MOS}")
 
 project(example C ASM)
 

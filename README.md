@@ -5,14 +5,17 @@ using [llvm-mos](https://llvm-mos.org) for Windows and Linux.
 
 ## Setup
 
-1. **CMake 3.21 or later, and Ninja**: Linux: `apt install cmake ninja-build`. Windows:
+1. **gametank-llvm-mos**: Download the bundle for your system from
+   [releases](https://github.com/jlennox-ai/gametank-llvm-mos/releases) and unpack it anywhere.
+2. **`GAMETANK_LLVM_MOS`**: Set the environment variable to the directory you unpacked to.
+3. **CMake 3.21 or later, and Ninja**: Linux: `apt install cmake ninja-build`. Windows:
    [CMake](https://cmake.org/download/) and [Ninja](https://github.com/ninja-build/ninja/releases)
    on your `PATH` (Visual Studio's "C++ CMake tools" include both).
-2. **Python 3.8+**: For writing the debug files. Windows users can get it from
+4. **Python 3.8+**: For writing the debug files. Windows users can get it from
    [python.org](https://www.python.org/downloads/).
-3. **llvm-mos**: [llvm-mos SDK](https://github.com/llvm-mos/llvm-mos-sdk/releases) is downloaded automatically on first use.
-4. **The tile tool**: See [graphics.md](graphics.md).
-5. **An emulator**:
+5. **llvm-mos**: [llvm-mos SDK](https://github.com/llvm-mos/llvm-mos-sdk/releases) is downloaded automatically on first use.
+6. **The tile tool**: See [graphics.md](graphics.md).
+7. **An emulator**:
    [GameTank Emulator](https://github.com/clydeshaffer/GameTankEmulator) or
    [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus)
 

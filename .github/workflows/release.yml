@@ -127,4 +127,8 @@ jobs:
             exit 1
           fi
           gh api "repos/$GH_REPO/git/tags/$tag_object" --jq .message > notes.txt
+          # A tag pushed again replaces its release.
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release delete "$GITHUB_REF_NAME" --yes
+          fi
           gh release create "$GITHUB_REF_NAME" out/* --title "gametank-llvm-mos $GITHUB_REF_NAME" --notes-file notes.txt
