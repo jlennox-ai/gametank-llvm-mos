@@ -79,7 +79,8 @@ jobs:
           mkdir ../unpacked
           7z x -o../unpacked out/gametank-llvm-mos-*-windows-x86_64.zip
           cmd //c "..\\unpacked\\gametank-llvm-mos\\example\\build.bat"
-          test -s ../unpacked/gametank-llvm-mos/example/build/example.gtr
+          roms=(../unpacked/gametank-llvm-mos/example/build/*.gtr)
+          test -s "${roms[0]}"
 
       - name: Build the example from the bundle (Linux)
         if: runner.os == 'Linux'
@@ -87,7 +88,8 @@ jobs:
           mkdir ../unpacked
           tar -xzf out/gametank-llvm-mos-*-linux-x86_64.tar.gz -C ../unpacked
           ../unpacked/gametank-llvm-mos/example/build.sh
-          test -s ../unpacked/gametank-llvm-mos/example/build/example.gtr
+          roms=(../unpacked/gametank-llvm-mos/example/build/*.gtr)
+          test -s "${roms[0]}"
 
       - uses: actions/upload-artifact@v7
         with:

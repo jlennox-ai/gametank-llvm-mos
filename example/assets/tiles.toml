@@ -1,0 +1,30 @@
+# The example's tiles (graphics.md): the player and a floor brick, 8x8, in four palettes.
+image = "tiles.png"
+tile_width = 8
+tile_height = 8
+tiles = ["player", "brick"]    # left to right in the image
+
+# Every colour in the image, as a shade: saturation 0-3 and luminance 0-7 (the palette gives the
+# hue). Transparent pixels need no entry.
+[colors]
+"#303030" = { saturation = 3, luminance = 1 }  # outlines and mortar
+"#707070" = { saturation = 3, luminance = 3 }
+"#b0b0b0" = { saturation = 3, luminance = 5 }  # highlights
+"#ffffff" = { saturation = 0, luminance = 7 }  # eyes
+"#101010" = { saturation = 0, luminance = 1 }  # pupils and mouth
+
+[[palettes]]
+name = "green"
+hue = 7
+
+[[palettes]]
+name = "yellow"
+hue = 0
+
+[[palettes]]
+name = "red"
+hue = 2
+
+[[palettes]]
+name = "blue"
+hue = 5

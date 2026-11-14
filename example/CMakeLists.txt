@@ -4,6 +4,12 @@ cmake_minimum_required(VERSION 3.21)
 # Found before project(): it picks the compiler.
 find_package(gametank-llvm-mos REQUIRED HINTS "$ENV{GAMETANK_LLVM_MOS}")
 
-project(example C ASM)
+# Your game's name: the image is build/<name>.gtr.
+project(example_project_name_here C ASM)
 
-gametank_add_rom(example main.c)
+# Every source file (.c, and .S for assembly). Headers aren't listed: the build finds them as
+# they're included.
+gametank_add_rom(${PROJECT_NAME}
+    main.c
+    player.c)
+gametank_add_tiles(${PROJECT_NAME} assets/tiles.toml)

@@ -7,7 +7,7 @@ using [llvm-mos](https://llvm-mos.org) for Windows and Linux.
 
 1. **gametank-llvm-mos**: Download the bundle for your system from
    [releases](https://github.com/jlennox-ai/gametank-llvm-mos/releases) and unpack it anywhere.
-2. **`GAMETANK_LLVM_MOS`**: Set the environment variable to the directory you unpacked to.
+2. **`GAMETANK_LLVM_MOS`**: Set the environment variable to the full path for the `gametank-llvm-mos` directory you unpacked.
 3. **CMake 3.21 or later, and Ninja**: Linux: `apt install cmake ninja-build`. Windows:
    [CMake](https://cmake.org/download/) and [Ninja](https://github.com/ninja-build/ninja/releases)
    on your `PATH` (Visual Studio's "C++ CMake tools" include both).
@@ -18,6 +18,12 @@ using [llvm-mos](https://llvm-mos.org) for Windows and Linux.
 7. **An emulator**:
    [GameTank Emulator](https://github.com/clydeshaffer/GameTankEmulator) or
    [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus)
+   
+## Project setup
+
+1. Copy `example/` to a new location.
+2. Edit `CMakeLists.txt` to add your C files and graphics.
+3. Edit or make a new `build.bat`/`build.sh` and away you go.
 
 ## SDK
 
@@ -64,8 +70,7 @@ variable in a function for the whole function, put `GT_DEBUG_FUNCTION` before it
 
 ## llvm-mos vs cc65
 
-- [cc65](https://cc65.github.io) A the long-standing C compiler for the 6502
-([GameTank SDK](https://github.com/clydeshaffer/gametank_sdk) uses it).
+- [cc65](https://cc65.github.io) A long-standing C compiler for the 6502 ([GameTank SDK](https://github.com/clydeshaffer/gametank_sdk) uses it).
 - [llvm-mos](https://github.com/llvm-mos/llvm-mos) is a port of LLVM and Clang to the 6502.
 
 **Newer C**: cc65 is close to C89. llvm-mos is Clang, so you get C99 through C23 (`constexpr`, `typeof`,
@@ -77,7 +82,7 @@ and locals use it most. llvm-mos's code is 3 to 6 times faster and usually small
 
 **Debugging in C**: Clang writes DWARF debug info which can be used by [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus).
 
-### Compiler output comparison.
+### Compiler output comparison
 
 | Function | What it does | cc65 cycles | llvm-mos cycles | Change | cc65 bytes | llvm-mos bytes |
 |---|---|--:|--:|--:|--:|--:|
@@ -330,6 +335,8 @@ This repository is under the [MIT license](LICENSE). It uses, or took parts from
 |---|---|---|
 | [llvm-mos](https://github.com/llvm-mos/llvm-mos) | The compiler, assembler and linker. Downloaded, not included | Apache 2.0 with LLVM Exceptions |
 | [llvm-mos SDK](https://github.com/llvm-mos/llvm-mos-sdk) | The `mos-common` configuration, linker scripts (`c.ld`, `imag-regs.ld`), startup libraries and C library. Downloaded, not included; parts of it are linked into your image, which the LLVM Exceptions allow without attribution | Apache 2.0 with LLVM Exceptions (some of its other targets' code is under cc65's zlib license or MIT) |
-| [GameTank](https://github.com/clydeshaffer/gametank), by Clyde Shaffer | The console itself: `sdk/` is written for its registers and hardware | No license stated |
-| [GameTank Emulator](https://github.com/clydeshaffer/GameTankEmulator), by Clyde Shaffer | The color table in `tools/tile_palettes/src/gametank_palette.rs` is its `src/gametank_palette.h`. The debug files are written in the formats it reads | MIT |
+| [GameTank](https://github.com/clydeshaffer/gametank) | The console itself: `sdk/` is written for its registers and hardware | No license stated |
+| [GameTank Emulator](https://github.com/clydeshaffer/GameTankEmulator) | The color table in `tools/tile_palettes/src/gametank_palette.rs` is its `src/gametank_palette.h`. The debug files are written in the formats it reads | MIT |
 | [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus) | Supports `variables.dbg`, part of the debug output. | MIT |
+
+🤖 This SDK was created by AI.

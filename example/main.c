@@ -1,39 +1,31 @@
-// The example program: a block moved around the screen with pad 1's d-pad. A, B and C change
-// its colour. Every .c and .s in this folder is built, with the SDK: see build.sh or build.bat.
+// The example program: a player (player.c) moved around the screen with pad 1's d-pad, above a
+// brick floor. A, B and C change the player's palette. Its tiles are assets/tiles.png, converted by
+// gametank_add_tiles (CMakeLists.txt) into tiles.h and tiles.c.
 #include <stdint.h>
 #include "gametank.h"
+#include "tiles.h"
+#include "player.h"
 
 #define BACKGROUND_COLOR GT_COLOR(5, 1, 1)
-#define BLOCK_SIZE 12
-#define BLOCK_MAX (GT_SCREEN_SIZE - BLOCK_SIZE)
 
-typedef struct {
-    uint8_t x;
-    uint8_t y;
-    uint8_t color;
-} Block;
-
-static void block_update(Block* block, uint8_t buttons) {
-    if ((buttons & GT_BUTTON_LEFT) && (block->x > 0)) { --block->x; }
-    if ((buttons & GT_BUTTON_RIGHT) && (block->x < BLOCK_MAX)) { ++block->x; }
-    if ((buttons & GT_BUTTON_UP) && (block->y > 0)) { --block->y; }
-    if ((buttons & GT_BUTTON_DOWN) && (block->y < BLOCK_MAX)) { ++block->y; }
-
-    if (buttons & GT_BUTTON_A) { block->color = GT_COLOR(2, 3, 4); }
-    if (buttons & GT_BUTTON_B) { block->color = GT_COLOR(7, 3, 4); }
-    if (buttons & GT_BUTTON_C) { block->color = GT_COLOR(0, 3, 5); }
+static void floor_draw(void) {
+    for (uint8_t x = 0; x < GT_SCREEN_SIZE; x += TILES_TILE_WIDTH) {
+        gt_sprite_draw(x, FLOOR_Y, TILES_X(TILES_BRICK), TILES_Y(TILES_PALETTE_RED), TILES_TILE_WIDTH,
+            TILES_TILE_HEIGHT);
+    }
 }
 
 int main(void) {
-    Block block = {
-        .x = BLOCK_MAX / 2,
-        .y = BLOCK_MAX / 2,
-        .color = GT_COLOR_WHITE,
-    };
+    // Into graphics RAM once, where every gt_sprite_draw copies from.
+    gt_sprite_sheet_load(tiles_sheet, TILES_SHEET_WIDTH, TILES_SHEET_HEIGHT, 0, 0);
+
+    Player player = player_create();
     for (;;) {
-        block_update(&block, gt_read_pad1());
+        player_update(&player, gt_read_pad1());
+
         gt_clear_screen(BACKGROUND_COLOR);
-        gt_fill_rect(block.x, block.y, BLOCK_SIZE, BLOCK_SIZE, block.color);
+        floor_draw();
+        player_draw(&player);
         gt_show_frame();
     }
 }
