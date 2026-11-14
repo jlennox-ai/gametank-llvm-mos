@@ -6,7 +6,7 @@
 ; llvm-mos passes byte arguments in A, X, then __rc2, __rc3, ... and returns a byte in A.
 ; A, X, Y and __rc2-__rc19 are the caller's to save; __rc20-__rc31 must be preserved.
 
-.include "gametank.inc"
+#include "gametank.inc"
 
     .zeropage __rc2, __rc3, __rc4
     .zeropage gt_frame_count, gt_nmi_wake
@@ -14,15 +14,15 @@
     .section .zp.bss,"aw",@nobits
     .globl gt_late_frames
     ; Also used by sprites.c, which starts blits of its own.
-    .globl dma_mirror, blit_pending
-    .zeropage dma_mirror, bank_mirror, blit_pending, shown_frame, gt_late_frames
-dma_mirror:         .zero 1     ; DMA_FLAGS and BANK_FLAGS are write-only
+    .globl gt_dma_mirror, gt_blit_pending
+    .zeropage gt_dma_mirror, bank_mirror, gt_blit_pending, shown_frame, gt_late_frames
+gt_dma_mirror:      .zero 1     ; DMA_FLAGS and BANK_FLAGS are write-only
 bank_mirror:        .zero 1
-blit_pending:       .zero 1     ; a blit has started since the last wait for one
+gt_blit_pending:    .zero 1     ; a blit has started since the last wait for one
 shown_frame:        .zero 1     ; gt_frame_count when the last frame was shown
 gt_late_frames:     .zero 1     ; frames that took longer than a vsync to draw
 
-; Runs once from _start, after BSS is zeroed and before main() (see crt0.s): shows
+; Runs once from _start, after BSS is zeroed and before main() (see crt0.S): shows
 ; framebuffer 0, draws into framebuffer 1, and turns on the vsync NMI. Finishes at a vsync,
 ; so main()'s first frame gets a whole frame's time. .init sections run straight into each
 ; other, so this ends without an RTS.
@@ -32,7 +32,7 @@ gt_init:
     sta bank_mirror
     sta BANK_FLAGS
     lda #(DMA_ENABLE | DMA_NMI | DMA_IRQ)
-    sta dma_mirror
+    sta gt_dma_mirror
     sta DMA_FLAGS
     lda gt_frame_count
 1:  cmp gt_frame_count
@@ -47,13 +47,13 @@ gt_init:
     .section .text.gt_wait_blit,"ax",@progbits
     .globl gt_wait_blit
 gt_wait_blit:
-    lda blit_pending
+    lda gt_blit_pending
     beq 2f
 1:  stz gt_nmi_wake
     wai
     lda gt_nmi_wake
     bne 1b
-    stz blit_pending
+    stz gt_blit_pending
 2:  rts
 
 ; Starts the blit whose parameters are already written.
@@ -61,7 +61,7 @@ gt_wait_blit:
 start_blit:
     lda #1
     sta DMA_START
-    sta blit_pending
+    sta gt_blit_pending
     rts
 
 ; void gt_show_frame(void)
@@ -81,9 +81,9 @@ gt_show_frame:
     lda gt_frame_count
     sta shown_frame
 
-    lda dma_mirror
+    lda gt_dma_mirror
     eor #DMA_PAGE_OUT
-    sta dma_mirror
+    sta gt_dma_mirror
     sta DMA_FLAGS
     lda bank_mirror
     eor #BANK_VRAM_PAGE
@@ -113,7 +113,7 @@ gt_fill_rect:
     lda __rc4
     eor #0xff                   ; DMA_COLOR takes the colour inverted
     sta DMA_COLOR
-    lda dma_mirror
+    lda gt_dma_mirror
     ora #(DMA_COLORFILL | DMA_OPAQUE)
     sta DMA_FLAGS
     jmp start_blit

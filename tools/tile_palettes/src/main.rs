@@ -7,6 +7,10 @@
 // palette gives every shade a hue (and can make the whole palette lighter or darker), so one
 // drawing becomes as many colour versions as there are palettes.
 //
+// The config's file name is its name: tiles.toml makes tiles.h and tiles.c. The image is a file
+// in the config's folder, so a build knows what to rebuild from: the config and the images
+// beside it.
+//
 // It writes, into the output folder (only files whose contents changed, so a build doesn't see
 // new timestamps):
 //   <name>.h, <name>.c     the sheet as a C array of colour bytes: one row of tiles per
@@ -15,7 +19,7 @@
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::ExitCode;
 
 mod gametank_palette;
@@ -35,6 +39,8 @@ const PREVIEW_TRANSPARENT: [u8; 3] = [255, 0, 255];
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Config {
+    // The config's file name, without .toml.
+    #[serde(skip)]
     name: String,
     image: String,
     tile_width: u32,
@@ -93,7 +99,8 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     let output_folder = Path::new(&arguments[1]);
-    // Each config's name names its output files, so two with the same name would overwrite each other.
+    // Each config's name names its output files, so two with the same name (in different
+    // folders) would overwrite each other.
     let mut names_by_config: Vec<(String, String)> = Vec::new();
     for config_argument in &arguments[2..] {
         let result = run(Path::new(config_argument), output_folder).and_then(|name| {
@@ -116,7 +123,9 @@ fn main() -> ExitCode {
 // Returns the config's name.
 fn run(config_path: &Path, output_folder: &Path) -> Result<String, String> {
     let config_text = fs::read_to_string(config_path).map_err(|error| error.to_string())?;
-    let config: Config = toml::from_str(&config_text).map_err(|error| error.to_string())?;
+    let mut config: Config = toml::from_str(&config_text).map_err(|error| error.to_string())?;
+    config.name = config_path.file_stem().and_then(|stem| stem.to_str())
+        .ok_or_else(|| "the config's file name isn't text".to_string())?.to_string();
     validate(&config)?;
 
     let image_path = config_path.parent().unwrap_or(Path::new(".")).join(&config.image);
@@ -134,7 +143,11 @@ fn run(config_path: &Path, output_folder: &Path) -> Result<String, String> {
 }
 
 fn validate(config: &Config) -> Result<(), String> {
-    validate_identifier("name", &config.name)?;
+    validate_identifier("config file name", &config.name)?;
+    let mut image_components = Path::new(&config.image).components();
+    if !matches!((image_components.next(), image_components.next()), (Some(Component::Normal(_)), None)) {
+        return Err(format!("image \"{}\" must be a file in the config's folder", config.image));
+    }
     if config.tile_width == 0 || config.tile_height == 0 {
         return Err("tile_width and tile_height must be above 0".to_string());
     }

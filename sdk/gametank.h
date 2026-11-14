@@ -1,4 +1,4 @@
-// GameTank hardware support for llvm-mos C programs. crt0.s starts the program, gametank.s,
+// GameTank hardware support for llvm-mos C programs. crt0.S starts the program, gametank.S,
 // gametank.c and sprites.c implement these, and link.ld lays out the cartridge.
 #ifndef GAMETANK_H
 #define GAMETANK_H
@@ -22,7 +22,7 @@
 #define GT_BUTTON_START 0x80
 
 // Put before a function to see all its variables in the emulator's source view, everywhere in
-// it: in the debug build (build.py <project> debug), the function is compiled without
+// it: in the debug build (the debug preset), the function is compiled without
 // optimization, so every variable keeps a place in memory for its whole scope (optimized code
 // drops values it no longer needs, which shows as "optimized out"). Elsewhere it does nothing.
 //   GT_DEBUG_FUNCTION static void player_update(void) {

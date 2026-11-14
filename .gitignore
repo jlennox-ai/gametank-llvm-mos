@@ -1,8 +1,9 @@
-# build.py's output.
+# Build folders (the CMake presets'), and your own presets.
 build/
 build-debug/
+CMakeUserPresets.json
 
-# Third-party tools (see README.md, "Setting up"): llvm-mos and, for
+# Third-party tools (see README.md, "Setting up"): llvm-mos, the tile tool and, for
 # comparison/compare.py, cc65.
 dev/
 

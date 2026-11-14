@@ -27,21 +27,21 @@
 // Past the screen's right and bottom edges, where gt_init's clipping stops a blit drawing.
 #define OFFSCREEN 0x80
 
-// gametank.s's state: DMA_FLAGS's value between blits (the register is write-only), and whether
+// gametank.S's state: DMA_FLAGS's value between blits (the register is write-only), and whether
 // a blit has started since gt_wait_blit last waited.
-extern uint8_t dma_mirror;
-extern uint8_t blit_pending;
+extern uint8_t gt_dma_mirror;
+extern uint8_t gt_blit_pending;
 
 static void start_blit(void) {
     DMA_START = 1;
-    blit_pending = 1;
+    gt_blit_pending = 1;
 }
 
 // The CPU's window shows the quadrant the last blit read from, so a one-pixel blit from the
 // quadrant, drawn off screen, selects it.
 static void select_cpu_quadrant(uint8_t gram_x, uint8_t gram_y) {
     gt_wait_blit();
-    DMA_FLAGS = dma_mirror;
+    DMA_FLAGS = gt_dma_mirror;
     DMA_VX = OFFSCREEN;
     DMA_VY = OFFSCREEN;
     DMA_GX = gram_x & QUADRANT_BIT;
@@ -57,7 +57,7 @@ static void select_cpu_quadrant(uint8_t gram_x, uint8_t gram_y) {
 static void load_within_quadrant(const uint8_t* sheet, uint8_t sheet_width, uint8_t width, uint8_t height,
     uint8_t gram_x, uint8_t gram_y) {
     select_cpu_quadrant(gram_x, gram_y);
-    DMA_FLAGS = dma_mirror & ~(DMA_ENABLE | DMA_CPU_TO_VRAM);
+    DMA_FLAGS = gt_dma_mirror & ~(DMA_ENABLE | DMA_CPU_TO_VRAM);
     volatile uint8_t* row = GRAM_WINDOW + (uint16_t)(gram_y & QUADRANT_MASK) * QUADRANT_SIZE + (gram_x & QUADRANT_MASK);
     for (uint8_t y = 0; y < height; ++y) {
         for (uint8_t x = 0; x < width; ++x) {
@@ -66,7 +66,7 @@ static void load_within_quadrant(const uint8_t* sheet, uint8_t sheet_width, uint
         sheet += sheet_width;
         row += QUADRANT_SIZE;
     }
-    DMA_FLAGS = dma_mirror;
+    DMA_FLAGS = gt_dma_mirror;
 }
 
 // The CPU sees one quadrant at a time, so a sheet crossing a quadrant's edge is copied a quadrant
@@ -107,7 +107,7 @@ void gt_sprite_draw(uint8_t x, uint8_t y, uint8_t gram_x, uint8_t gram_y, uint8_
 
     gt_wait_blit();
     // Not DMA_OPAQUE: colour 0 is transparent.
-    DMA_FLAGS = dma_mirror | DMA_GCARRY;
+    DMA_FLAGS = gt_dma_mirror | DMA_GCARRY;
     DMA_VX = x;
     DMA_VY = y;
     DMA_GX = gram_x;

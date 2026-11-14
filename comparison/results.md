@@ -3,7 +3,7 @@
 Written by [`compare.py`](compare.py) (rerun it rather than editing this), with:
 
 - **cc65**: cc65 V2.19 - Git e47ac50, `cc65 -t sim65c02 -Oirs -Cl`
-- **llvm-mos**: clang version 24.0.0git (https://github.com/llvm-mos/llvm-mos cd9145597347753c7cabd1c34d24722d4d8a8f96), `clang --config mos-common.cfg -mcpu=mosw65c02 -mlto-zp=200 -Os`, the flags `build.py` uses (link-time optimization included)
+- **llvm-mos**: clang version 24.0.0git (https://github.com/llvm-mos/llvm-mos cd9145597347753c7cabd1c34d24722d4d8a8f96), `clang --config mos-common.cfg -mcpu=mosw65c02 -mlto-zp=200 -Os`, the flags `cmake/gametank.cmake` builds with (link-time optimization included)
 
 Both run on sim65, cc65's simulator, as a 65C02.
 

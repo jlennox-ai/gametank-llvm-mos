@@ -1,7 +1,11 @@
 @echo off
-rem Builds this folder with the environment's build.py: build.bat, or build.bat debug.
-rem Python's launcher (py) picks the newest Python 3 installed; without it, python on the PATH.
+rem Builds this project with its CMake preset: build.bat (release, into build\) or build.bat debug
+rem (into build-debug\).
 setlocal
-set "PYTHON=python"
-where py >nul 2>&1 && set "PYTHON=py -3"
-%PYTHON% "%~dp0..\build.py" "%~dp0." %*
+set "PRESET=%~1"
+if "%PRESET%"=="" set "PRESET=release"
+pushd "%~dp0"
+cmake --preset %PRESET% && cmake --build --preset %PRESET%
+set "RESULT=%ERRORLEVEL%"
+popd
+exit /b %RESULT%

@@ -1,0 +1,123 @@
+name: release
+
+# Builds the tile tool (tools/tile_palettes) for Windows and Linux, and with it a bundle per
+# system: this repository's files, with the tool already in dev/. Then builds the example from each
+# bundle, as someone who downloaded it would.
+#
+# On a version tag (v0.1.0), publishes them as that release: the bundles to start from, and the
+# tool on its own, which cmake/gametank.cmake downloads into a clone's dev/ (from the latest
+# release). llvm-mos isn't in the bundles: the first build downloads it.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            system: windows
+            target: x86_64-pc-windows-msvc
+            program: tile_palettes.exe
+          - os: ubuntu-latest
+            system: linux
+            target: x86_64-unknown-linux-musl
+            program: tile_palettes
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the musl target and Ninja
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools ninja-build
+          rustup target add ${{ matrix.target }}
+
+      - name: Install Ninja
+        if: runner.os == 'Windows'
+        run: ninja --version || choco install ninja -y
+
+      # Statically linked, so the Windows build doesn't need the Visual C++ runtime, and the Linux
+      # build (musl) runs on any distribution.
+      - name: Build the tile tool
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: cargo build --release --locked --target ${{ matrix.target }} --manifest-path tools/tile_palettes/Cargo.toml
+
+      # tile_palettes-<system>: a tile_palettes folder holding the tool, as dev/ wants it.
+      # gametank-llvm-mos-<version>-<system>: the repository's files (but the workflows), with the
+      # tool in dev/tile_palettes.
+      - name: Package
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="$GITHUB_REF_NAME"
+          else
+            version="${GITHUB_SHA::7}"
+          fi
+          bundle="out/bundle/gametank-llvm-mos"
+          mkdir -p out/tile_palettes "$bundle/dev/tile_palettes"
+          cp "tools/tile_palettes/target/${{ matrix.target }}/release/${{ matrix.program }}" out/tile_palettes/
+          git ls-files -z -- . ':(exclude).github' | xargs -0 cp --parents -t "$bundle"
+          cp "out/tile_palettes/${{ matrix.program }}" "$bundle/dev/tile_palettes/"
+          cd out
+          if [ "$RUNNER_OS" = Windows ]; then
+            7z a tile_palettes-windows-x86_64.zip tile_palettes
+            (cd bundle && 7z a "../gametank-llvm-mos-$version-windows-x86_64.zip" gametank-llvm-mos)
+          else
+            tar -czf tile_palettes-linux-x86_64.tar.gz tile_palettes
+            tar -czf "gametank-llvm-mos-$version-linux-x86_64.tar.gz" -C bundle gametank-llvm-mos
+          fi
+
+      # From the bundle, as a download: unpacked somewhere else, with nothing else installed but
+      # what README.md says.
+      - name: Build the example from the bundle (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir ../unpacked
+          7z x -o../unpacked out/gametank-llvm-mos-*-windows-x86_64.zip
+          cmd //c "..\\unpacked\\gametank-llvm-mos\\example\\build.bat"
+          test -s ../unpacked/gametank-llvm-mos/example/build/example.gtr
+
+      - name: Build the example from the bundle (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir ../unpacked
+          tar -xzf out/gametank-llvm-mos-*-linux-x86_64.tar.gz -C ../unpacked
+          ../unpacked/gametank-llvm-mos/example/build.sh
+          test -s ../unpacked/gametank-llvm-mos/example/build/example.gtr
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.system }}
+          path: |
+            out/*.zip
+            out/*.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/* --title "gametank-llvm-mos $GITHUB_REF_NAME" --notes \
+            "gametank-llvm-mos-$GITHUB_REF_NAME-<system>: this repository, with the tile tool already built into dev/. Unpack it and build the example with example/build.sh (Linux) or example\\build.bat (Windows); the first build downloads llvm-mos. tile_palettes-<system>: the tile tool on its own, which a clone of the repository downloads when it needs it."

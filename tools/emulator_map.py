@@ -1,17 +1,16 @@
-"""Writes <build>/out.map, the symbol list the GameTank emulator loads (the label box and
-breakpoints in its code stepper, F7), from the label file <build>/<name>.lbl. The build
-folder is <project>/build or <project>/build-debug.
+"""Writes out.map, the symbol list the GameTank emulator loads (the label box and breakpoints
+in its code stepper, F7), from a VICE-style label file. debug_files.py runs it after a build.
 
 The emulator reads the "Exports list by value" section of a map file in cc65's ld65 format,
 which is the only map format it knows, so this writes that section from the label file's
 symbols. lld's own map is <build>/<name>.map.
 
-usage: emulator_map.py <build directory> <name>"""
-import os
+usage: emulator_map.py <labels.lbl> <out.map>"""
 import re
 import sys
 
 LABEL_LINE = re.compile(r"^al ([0-9A-F]+) \.(\S+)$")
+HEADING = "Exports list by value:"
 
 
 def read_symbols(path):
@@ -30,18 +29,18 @@ def read_symbols(path):
     return symbols
 
 
-def main():
-    if len(sys.argv) != 3:
-        sys.exit("usage: emulator_map.py <build directory> <name>")
-    build = sys.argv[1]
-    labels_path = os.path.join(build, f"{sys.argv[2]}.lbl")
-    if not os.path.exists(labels_path):
-        sys.exit(f"{labels_path} not found: build first")
-    lines = ["Exports list by value:", "-" * len("Exports list by value:")]
+def write_map(labels_path, map_path):
+    lines = [HEADING, "-" * len(HEADING)]
     for address, name in sorted(read_symbols(labels_path)):
         lines.append(f"{name:<32} {address:06X} RLA")
-    with open(os.path.join(build, "out.map"), "w", encoding="utf-8") as handle:
+    with open(map_path, "w", encoding="utf-8") as handle:
         handle.write("\n".join(lines) + "\n")
+
+
+def main():
+    if len(sys.argv) != 3:
+        sys.exit(__doc__.split("usage: ")[1])
+    write_map(sys.argv[1], sys.argv[2])
 
 
 if __name__ == "__main__":

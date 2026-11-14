@@ -33,7 +33,7 @@ CC65_HOME = os.path.join(ROOT, "dev", "cc65")
 # -Oirs: optimize, inline small runtime functions, and allow register variables. -Cl: locals at
 # fixed addresses instead of on cc65's software stack, which is much faster (but no recursion).
 CC65_FLAGS = ["-t", "sim65c02", "-Oirs", "-Cl"]
-# build.py's flags, with sim65/link.ld in place of sdk/link.ld.
+# The flags cmake/gametank.cmake builds with, with sim65/link.ld in place of sdk/link.ld.
 LLVM_MOS_FLAGS = ["--config", "mos-common.cfg", "-mcpu=mosw65c02", "-mlto-zp=200", "-Os", "-L", SIM65_SUPPORT]
 LLVM_MOS_STANDARDS = {".c": "-std=gnu23", ".cpp": "-std=gnu++23"}
 # exit-custom: main() returning calls exit(), which ends in sim65.s's _Exit.
@@ -320,7 +320,7 @@ def write_results(cc65_version, llvm_mos_version, cc65_bench, llvm_mos_bench, cc
         f"- **cc65**: {cc65_version}, `cc65 {' '.join(CC65_FLAGS)}`",
         f"- **llvm-mos**: {llvm_mos_version}, "
         f"`clang {' '.join(flag for flag in LLVM_MOS_FLAGS if flag not in ('-L', SIM65_SUPPORT))}`, "
-        "the flags `build.py` uses (link-time optimization included)",
+        "the flags `cmake/gametank.cmake` builds with (link-time optimization included)",
         "",
         "Both run on sim65, cc65's simulator, as a 65C02.",
         "",

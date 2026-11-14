@@ -30,7 +30,7 @@ With a static stack (the release build: llvm-mos's default, and on unless -fno-s
 a function that can't be re-entered keeps its frame and its callee-saved registers (RC20-RC31)
 at fixed zero-page addresses instead, but the debug info still names the registers and the C
 stack pointer (RS0). Those locations are written as unavailable rather than wrong;
-build.py's debug build has no static stack, so its locations are all real.
+the debug build (CMAKE_BUILD_TYPE Debug) has no static stack, so its locations are all real.
 """
 import os
 import re
@@ -48,6 +48,8 @@ REGISTER_OFFSET = re.compile(r"^(\w+)([+-]\d+)$")
 WHOLE_SCOPE = (0, 0x10000)
 SCOPE_TAGS = ("DW_TAG_subprogram", "DW_TAG_lexical_block", "DW_TAG_inlined_subroutine")
 VARIABLE_TAGS = ("DW_TAG_variable", "DW_TAG_formal_parameter")
+# An llvm-nm line: "00000200 B gt_frame_count" (address, kind, name).
+NM_LINE = re.compile(r"^([0-9a-f]+) (\w) (\S+)$")
 
 
 class Die:
@@ -304,7 +306,7 @@ def read_symbol_addresses(elf_path):
     addresses = {}
     register_base = None
     for line in debug_files.run_tool("llvm-nm", "--defined-only", elf_path).splitlines():
-        match = debug_files.NM_LINE.match(line.strip())
+        match = NM_LINE.match(line.strip())
         if match is None:
             continue
         if match.group(3) == "__rc0":
@@ -368,9 +370,10 @@ def write_variables(elf_path, output_path, static_stack):
 
 
 def main():
+    # --debug: the debug build, compiled with -fno-static-stack.
     arguments = sys.argv[1:]
-    if len(arguments) not in (2, 3) or (len(arguments) == 3 and arguments[2] != "--no-static-stack"):
-        sys.exit("usage: variables.py <build directory> <name> [--no-static-stack]")
+    if len(arguments) not in (2, 3) or (len(arguments) == 3 and arguments[2] != "--debug"):
+        sys.exit("usage: variables.py <build directory> <name> [--debug]")
     build, name = arguments[0], arguments[1]
     write_variables(debug_files.elf_path(build, name), os.path.join(build, "variables.dbg"),
                     static_stack=len(arguments) == 2)

@@ -1,66 +1,25 @@
 # gametank-llvm-mos
 
-A modern C build environment for the [GameTank](https://gametank.zone), the 6502 game console,
-using [llvm-mos](https://llvm-mos.org) instead of cc65. It has:
+A modern C build environment for the [GameTank](https://gametank.zone)
+using [llvm-mos](https://llvm-mos.org) for Windows and Linux.
 
-- a small SDK for the GameTank: startup code, a linker script for the 2 MB cartridge, and C
-  functions for the blitter, the gamepad and frame timing
-- a build script that compiles your C and assembly into a cartridge image
-- tools that turn the compiler's debug info into the files the GameTank emulator's debugger
-  reads, so it can show your C source as it steps through it, and the values of your variables
-- an optional tool that turns PNG tiles into GameTank color data, once per palette
+## Setup
 
-It runs on Windows and Linux.
-
-## llvm-mos vs cc65
-
-- [cc65](https://cc65.github.io) A the long-standing C compiler for the 6502 (
-[GameTank SDK](https://github.com/clydeshaffer/gametank_sdk) uses it).
-- llvm-mos is a port of LLVM and Clang to the 6502.
-
-**Newer C.** cc65 is close to C89. llvm-mos is Clang, so you get C99 through C23 (`constexpr`, `typeof`,
-`#embed`, `enum Foo : uint8_t`...), and C++ too. See [feature table](#c-language-features) below.
-
-**Better code.** cc65 compiles one function at a time, passes arguments on a software stack, and
-calls runtime routines for much of what's wider than a byte, such as a multiply for every
-`grid[y][x]`. llvm-mos has LLVM's optimizer and a real register allocator. Arguments go in A, X
-and 32 zero-page "imaginary registers". With link-time optimization the whole program is
-optimized at once: functions are inlined across files, and zero page goes to whichever globals
-and locals use it most. On the [examples below](#llvm-mos-and-cc65-compared), llvm-mos's code is
-3 to 6 times faster, and usually smaller.
-
-**Debugging in C.** Clang writes DWARF debug info which can be used by [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus).
-
-## Downsides / TODO
-
-- **No audio tooling:** It's bring your own right now.
-- **No bank switching:** Your program is stuck to 32 KB. the rest of the 2 MB cartridge can't be used until there are bank-switching helpers.
-
-## Using it
-
-### Setting up
-
-1. **Python 3.8 or later.** Windows users can get it from [python.org](https://www.python.org/downloads/).
-2. **llvm-mos.** Download the [llvm-mos SDK](https://github.com/llvm-mos/llvm-mos-sdk/releases)
-   release for your system and unpack it into `dev/`, so that `dev/llvm-mos/bin/clang`
-   (`clang.exe` on Windows) exists. It's tested with v23.3.0.
-   - Windows: `llvm-mos-windows.7z`, unpacked with [7-Zip](https://www.7-zip.org).
-   - Linux: `mkdir -p dev && tar -xJf llvm-mos-linux.tar.xz -C dev`
-3. **Rust**, only if you use the graphics tool (`assets/`, see [Graphics](#graphics)): cargo,
-   from [rustup](https://rustup.rs).
-4. **An emulator** to run the image: the
-   [GameTank Emulator](https://github.com/clydeshaffer/GameTankEmulator), or
+1. **CMake 3.21 or later, and Ninja**: Linux: `apt install cmake ninja-build`. Windows:
+   [CMake](https://cmake.org/download/) and [Ninja](https://github.com/ninja-build/ninja/releases)
+   on your `PATH` (Visual Studio's "C++ CMake tools" include both).
+2. **Python 3.8+**: For writing the debug files. Windows users can get it from
+   [python.org](https://www.python.org/downloads/).
+3. **llvm-mos**: [llvm-mos SDK](https://github.com/llvm-mos/llvm-mos-sdk/releases) is downloaded automatically on first use.
+4. **The tile tool**: only if you use [Graphics](#graphics): download `tile_palettes` for your
+   system from this repository's [releases](https://github.com/jlennox-ai/gametank-llvm-mos/releases)
+   and unpack it into `dev/`, so that `dev/tile_palettes/tile_palettes` (`.exe` on Windows)
+   exists. Or install [Rust](https://rustup.rs) and the build compiles it.
+5. **An emulator**:
+   [GameTank Emulator](https://github.com/clydeshaffer/GameTankEmulator) or
    [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus)
 
-### Building
-
-Inside your game's source directory:
-
-    python build.py
-    
-Your game will be written to `build/<dir name>.gtr`
-
-### SDK
+## SDK
 
 `sdk/gametank.h`:
 
@@ -78,71 +37,47 @@ Your game will be written to `build/<dir name>.gtr`
 | `GT_ASSERT(condition)`, `gt_panic()` | Halt the CPU (`STP`) where the debugger can see it |
 | `GT_DEBUG_FUNCTION` | See [Debugging](#debugging) |
 
-### Debugging
+## Debugging
 
-`build.py debug` builds into `build-debug/`. Useful for GameTank Emulator Plus's debug features.
+`build.sh debug` (the `debug` preset) builds into `build-debug/`. Useful for GameTank Emulator
+Plus's debug features.
 
 | File | What |
 |---|---|
 | `sourcemap.dbg` | The emulator's source view (ld65's debug info format), for every bank of the program |
 | `out.map` | The emulator's symbols (ld65's map format) |
 | `variables.dbg` | Where each variable is, PC by PC, with its type: GameTank Emulator Plus's variable hovers |
-| `game.lbl` | Every label, VICE-style (`al 008000 .main`) |
-| `game.map` | lld's map: sections, symbols, sizes |
+| `<name>.lbl` | Every label, VICE-style (`al 008000 .main`) |
+| `<name>.map` | lld's map: sections, symbols, sizes |
 | `assembly.s` | The linked program disassembled, with the C source between |
-| `game.gtr.elf` | The ELF, with its DWARF debug info |
+| `<name>.gtr.elf` | The ELF, with its DWARF debug info |
+| `compile_commands.json` | For clangd: use the one in `dev/llvm-mos/bin`, which knows the 6502 |
 
 Even in the debug build, optimized code keeps a value only while it needs it. To see every
 variable in a function for the whole function, put `GT_DEBUG_FUNCTION` before it to de-optimize just that function.
 
-### Graphics
+## Downsides / TODO
 
-`tools/tile_palettes` turns a PNG of tiles into GameTank color data, once per palette, so one
-drawing becomes as many color versions as you have palettes. For each `assets/*.toml`, the build
-writes `<name>.h` and `<name>.c` into `build/assets/` (you `#include "<name>.h"`), and
-`<name>_preview.png` to check the colors. For example, `assets/tiles.toml`:
+- **Not well used**: This was made by an LLM for my personal project :) Battle testers welcome.
+- **No audio tooling**: It's bring your own right now.
+- **No bank switching**: Your program is stuck to 32 KB. the rest of the 2 MB cartridge can't be used until there are bank-switching helpers.
 
-```toml
-name = "tiles"
-image = "tiles.png"            # next to this file
-tile_width = 12
-tile_height = 12
-tiles = ["solid", "single"]    # left to right in the image
+## llvm-mos vs cc65
 
-# Every color in the image, as a shade: saturation 0-3 and luminance 0-7 (the palette gives the
-# hue). Fully transparent pixels need no entry.
-[colors]
-"#ffffff" = "transparent"
-"#1c9440" = { saturation = 3, luminance = 4 }
-"#22b14c" = { saturation = 3, luminance = 5 }
+- [cc65](https://cc65.github.io) A the long-standing C compiler for the 6502
+([GameTank SDK](https://github.com/clydeshaffer/gametank_sdk) uses it).
+- [llvm-mos](https://github.com/llvm-mos/llvm-mos) is a port of LLVM and Clang to the 6502.
 
-# A row of tiles per palette: a hue 0-7, and optionally a luminance added to every shade.
-[[palettes]]
-name = "green"
-hue = 7
+**Newer C**: cc65 is close to C89. llvm-mos is Clang, so you get C99 through C23 (`constexpr`, `typeof`,
+`#embed`, `enum E : uint8_t`...), and C++. See [feature table](#c-language-features).
 
-[[palettes]]
-name = "red"
-hue = 2
-luminance = -2
-```
+**Better code**: llvm-mos has LLVM's optimizer and a real register allocator. With link-time optimization the whole
+program is optimized at once: functions are inlined across files, and zero page goes to whichever globals
+and locals use it most. llvm-mos's code is 3 to 6 times faster and usually smaller.
 
-Then, in C:
+**Debugging in C**: Clang writes DWARF debug info which can be used by [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus).
 
-```c
-#include "tiles.h"
-
-gt_sprite_sheet_load(tiles_sheet, TILES_SHEET_WIDTH, TILES_SHEET_HEIGHT, 0, 0);  // once, at startup
-gt_sprite_draw(x, y, TILES_X(TILES_SOLID), TILES_Y(TILES_PALETTE_RED), TILES_TILE_WIDTH, TILES_TILE_HEIGHT);
-```
-
-A color the config doesn't list, or a shade pushed out of range by a palette, is an error that
-names the pixel. A tile can't be called `h`, `x`, `y`, `sheet_width`, `sheet_height`,
-`tile_width` or `tile_height`, or start with `palette_`: those names are taken in the header.
-
-## llvm-mos vs cc65 compared
-
-### Compiler output
+### Compiler output comparison.
 
 | Function | What it does | cc65 cycles | llvm-mos cycles | Change | cc65 bytes | llvm-mos bytes |
 |---|---|--:|--:|--:|--:|--:|
@@ -270,11 +205,6 @@ uint8_t clamp_add(uint8_t value, int8_t delta, uint8_t low, uint8_t high) {
 }
 ```
 
-cc65's caller makes room on its software stack (`decsp3`) and stores the first three arguments
-there. The function pushes the last one (`pusha`), reads them all back through the stack pointer
-(`(c_sp),y`), compares 16-bit values with a runtime call (`tosicmp0`), and pops them on the way
-out (`incsp4`). llvm-mos gets them in A, X, `__rc2` and `__rc3`, and needs no calls.
-
 <details>
 <summary>6502 output</summary>
 
@@ -368,10 +298,6 @@ L09E4:  lda     __rc2
 
 </details>
 
-`hash_bytes` is the one where llvm-mos's code is bigger (by 4 bytes): it does the multiply by 33
-inline, with shifts and adds, where cc65 calls a runtime routine (`tosumula0`), which is why it's
-3.5 times faster.
-
 ### C language features
 
 | Feature | Standard | cc65 | llvm-mos |
@@ -396,7 +322,6 @@ inline, with shifts and adds, where cc65 calls a runtime routine (`tosumula0`), 
 | `#embed`: a file's bytes as an initializer | C23 | no | yes |
 | Classes, templates, constexpr and lambdas | C++ | no | yes |
 
-
 ## Credits and licenses
 
 This repository is under the [MIT license](LICENSE). It uses, or took parts from:
@@ -407,4 +332,4 @@ This repository is under the [MIT license](LICENSE). It uses, or took parts from
 | [llvm-mos SDK](https://github.com/llvm-mos/llvm-mos-sdk) | The `mos-common` configuration, linker scripts (`c.ld`, `imag-regs.ld`), startup libraries and C library. Downloaded, not included; parts of it are linked into your image, which the LLVM Exceptions allow without attribution | Apache 2.0 with LLVM Exceptions (some of its other targets' code is under cc65's zlib license or MIT) |
 | [GameTank](https://github.com/clydeshaffer/gametank), by Clyde Shaffer | The console itself: `sdk/` is written for its registers and hardware | No license stated |
 | [GameTank Emulator](https://github.com/clydeshaffer/GameTankEmulator), by Clyde Shaffer | The color table in `tools/tile_palettes/src/gametank_palette.rs` is its `src/gametank_palette.h`. The debug files are written in the formats it reads | MIT |
-| [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus) | Reads `variables.dbg`, the format `tools/variables.py` writes | MIT |
+| [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus) | Supports `variables.dbg`, part of the debug output. | MIT |

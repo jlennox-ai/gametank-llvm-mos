@@ -37,7 +37,7 @@ BANK_GRAM_MASK  = 0b00000111
 BANK_VRAM_PAGE  = 0b00001000 ; framebuffer the blitter draws into
 BANK_CLIP_X     = 0b00010000
 BANK_CLIP_Y     = 0b00100000
-BANK_RAM_MASK   = 0b11000000 ; 8 KB RAM bank at $0000-$1FFF (crt0.s selects bank 0)
+BANK_RAM_MASK   = 0b11000000 ; 8 KB RAM bank at $0000-$1FFF (crt0.S selects bank 0)
 
 ; VIA port A bits that drive the 2 MB cartridge's bank shift register
 VIA_SPI_CLOCK   = 0b00000001

@@ -3,16 +3,16 @@
 ; gt_reset brings the hardware to a known state, clears RAM (it powers up random), maps the
 ; program's lower bank into the ROM window and jumps to llvm-mos's _start. That runs the
 ; .init sections in order: the C stack (.init.100), copying initialised data and zeroing BSS
-; (.init.200), gt_init in gametank.s (.init.300), then main(). Interrupts stay masked for
+; (.init.200), gt_init in gametank.S (.init.300), then main(). Interrupts stay masked for
 ; good: the vsync NMI is always taken, and the blitter's IRQ only wakes WAI (see
-; gt_wait_blit in gametank.s).
+; gt_wait_blit in gametank.S).
 ;
-; Everything run before _start is in .boot, at the top of the always-mapped bank 127: it runs
-; before bank 126 is mapped, and the interrupt handlers must not depend on it.
+; Everything run before _start is in .boot, at the top of the always-mapped last bank: it runs
+; before the program's other bank (link.ld's __gt_program_bank) is mapped, and the interrupt
+; handlers must not depend on it.
 
-.include "gametank.inc"
+#include "gametank.inc"
 
-PROGRAM_BANK = 126              ; the cartridge bank link.ld puts at $8000-$BFFF
 RAM_END_PAGE = 0x20             ; RAM is $0000-$1FFF
 
     .zeropage __rc2, __rc3, __rc4
@@ -58,7 +58,7 @@ gt_reset:
     lda #VIA_SPI_OUTPUTS
     sta VIA_DDRA
     stz VIA_ORA
-    lda #PROGRAM_BANK
+    lda #<__gt_program_bank     ; from link.ld
     jsr set_rom_bank
     jmp _start
 
