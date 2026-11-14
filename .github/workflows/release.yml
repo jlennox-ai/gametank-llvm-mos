@@ -4,9 +4,8 @@ name: release
 # system: this repository's files, with the tool already in dev/. Then builds the example from each
 # bundle, as someone who downloaded it would.
 #
-# On a version tag (v0.1.0), publishes them as that release: the bundles to start from, and the
-# tool on its own, which cmake/gametank.cmake downloads into a clone's dev/ (from the latest
-# release). llvm-mos isn't in the bundles: the first build downloads it.
+# On a version tag (v0.1.0), publishes the bundles as that release. llvm-mos isn't in them: the
+# first build downloads it.
 on:
   push:
     branches: [main]
@@ -52,9 +51,8 @@ jobs:
           RUSTFLAGS: -C target-feature=+crt-static
         run: cargo build --release --locked --target ${{ matrix.target }} --manifest-path tools/tile_palettes/Cargo.toml
 
-      # tile_palettes-<system>: a tile_palettes folder holding the tool, as dev/ wants it.
       # gametank-llvm-mos-<version>-<system>: the repository's files (but the workflows), with the
-      # tool in dev/tile_palettes.
+      # tile tool in dev/tile_palettes.
       - name: Package
         run: |
           if [ "$GITHUB_REF_TYPE" = tag ]; then
@@ -63,16 +61,13 @@ jobs:
             version="${GITHUB_SHA::7}"
           fi
           bundle="out/bundle/gametank-llvm-mos"
-          mkdir -p out/tile_palettes "$bundle/dev/tile_palettes"
-          cp "tools/tile_palettes/target/${{ matrix.target }}/release/${{ matrix.program }}" out/tile_palettes/
+          mkdir -p "$bundle/dev/tile_palettes"
           git ls-files -z -- . ':(exclude).github' | xargs -0 cp --parents -t "$bundle"
-          cp "out/tile_palettes/${{ matrix.program }}" "$bundle/dev/tile_palettes/"
+          cp "tools/tile_palettes/target/${{ matrix.target }}/release/${{ matrix.program }}" "$bundle/dev/tile_palettes/"
           cd out
           if [ "$RUNNER_OS" = Windows ]; then
-            7z a tile_palettes-windows-x86_64.zip tile_palettes
             (cd bundle && 7z a "../gametank-llvm-mos-$version-windows-x86_64.zip" gametank-llvm-mos)
           else
-            tar -czf tile_palettes-linux-x86_64.tar.gz tile_palettes
             tar -czf "gametank-llvm-mos-$version-linux-x86_64.tar.gz" -C bundle gametank-llvm-mos
           fi
 

@@ -19,15 +19,14 @@
 #   LINKER_SCRIPT: a linker script to use instead of sdk/link.ld.
 #
 # gametank_add_tiles(<name> <config.toml>...)
-#   Converts tile sheets into C for <name> with tools/tile_palettes (README.md, "Graphics"):
-#   tiles.toml makes tiles.h, which <name>'s sources can include, and tiles.c.
+#   Converts tile sheets into C for <name> with the tile tool (graphics.md): tiles.toml makes
+#   tiles.h, which <name>'s sources can include, and tiles.c. The tool is
+#   dev/tile_palettes/tile_palettes, which the release bundle comes with; in a clone, build it
+#   (tools/tile_palettes, with cargo) and put it there.
 #
-# The programs the build runs are in dev/. One that isn't there is downloaded the first time it's
-# needed (into the temp folder) and unpacked there:
-#   dev/llvm-mos        the compiler: the llvm-mos SDK release below, checked against its SHA-256
-#   dev/tile_palettes   the tile tool, for gametank_add_tiles: from this repository's latest
-#                       release (whose bundles come with it already in dev/)
-# To use another build of either, put it there yourself first.
+# The compiler is llvm-mos, in dev/llvm-mos. If it isn't there, the first build downloads the
+# release below for this system (into the temp folder), checks it against its SHA-256 and unpacks
+# it there. To use another llvm-mos, unpack it into dev/llvm-mos yourself first.
 include_guard(GLOBAL)
 cmake_minimum_required(VERSION 3.21)
 
@@ -38,41 +37,33 @@ else()
   set(GAMETANK_EXECUTABLE_SUFFIX "")
 endif()
 
-# Per system (windows, linux): the file to download, then for llvm-mos its SHA-256.
+# Per system: the file and its SHA-256.
 set(GAMETANK_LLVM_MOS_URL "https://github.com/llvm-mos/llvm-mos-sdk/releases/download/v23.3.0")
 set(GAMETANK_LLVM_MOS_windows llvm-mos-windows.7z 77ced2b04c2802a3c92bec8f99dc59110916af6cfe5fff2442bbeadde8de5be2)
 set(GAMETANK_LLVM_MOS_linux llvm-mos-linux.tar.xz 9f694497bc93a7c876d8c62325c7d74e7860346d80fbcd0555e19ba6856658c8)
-set(GAMETANK_TILE_PALETTES_URL "https://github.com/jlennox-ai/gametank-llvm-mos/releases/latest/download")
-set(GAMETANK_TILE_PALETTES_windows tile_palettes-windows-x86_64.zip)
-set(GAMETANK_TILE_PALETTES_linux tile_palettes-linux-x86_64.tar.gz)
 
-# Makes sure dev/<folder>/<program> exists. If dev/<folder> doesn't, downloads <url>/<file>, with
-# <file> (and its SHA-256, if given) from the list <downloads>_<system>, and unpacks the <folder>
-# folder in it to dev/<folder>.
-function(_gametank_fetch folder program url downloads)
-  set(destination "${GAMETANK_ROOT}/dev/${folder}")
+function(_gametank_fetch_llvm_mos)
+  set(destination "${GAMETANK_ROOT}/dev/llvm-mos")
+  set(program "bin/mos-clang${GAMETANK_EXECUTABLE_SUFFIX}")
   if(EXISTS "${destination}/${program}")
     return()
   endif()
   if(EXISTS "${destination}")
-    message(FATAL_ERROR "${destination} has no ${program}: delete it to have it downloaded again")
+    message(FATAL_ERROR "${destination} has no ${program}: delete it to have llvm-mos downloaded again")
   endif()
 
   cmake_host_system_information(RESULT platform QUERY OS_PLATFORM)
   if(CMAKE_HOST_WIN32 AND platform MATCHES "^(AMD64|x86_64)$")
-    set(download ${${downloads}_windows})
+    set(download ${GAMETANK_LLVM_MOS_windows})
   elseif(CMAKE_HOST_UNIX AND NOT CMAKE_HOST_APPLE AND platform STREQUAL "x86_64")
-    set(download ${${downloads}_linux})
+    set(download ${GAMETANK_LLVM_MOS_linux})
   else()
-    message(FATAL_ERROR "There's no ${folder} download for this system (${platform}): put one in ${destination}")
+    message(FATAL_ERROR "There's no llvm-mos download for this system (${platform}): unpack an llvm-mos SDK "
+      "release (https://github.com/llvm-mos/llvm-mos-sdk/releases) into ${destination}")
   endif()
   list(GET download 0 file)
-  set(expected_hash "")
-  list(LENGTH download download_length)
-  if(download_length GREATER 1)
-    list(GET download 1 hash)
-    set(expected_hash EXPECTED_HASH "SHA256=${hash}")
-  endif()
+  list(GET download 1 hash)
+  set(url "${GAMETANK_LLVM_MOS_URL}/${file}")
 
   # Another configure (another build folder) may be fetching it at the same time.
   file(MAKE_DIRECTORY "${GAMETANK_ROOT}/dev")
@@ -92,30 +83,30 @@ function(_gametank_fetch folder program url downloads)
     set(temp "/tmp")
   endif()
   set(archive "${temp}/gametank-${file}")
-  message(STATUS "Downloading ${url}/${file}")
-  file(DOWNLOAD "${url}/${file}" "${archive}" ${expected_hash} SHOW_PROGRESS STATUS status)
+  message(STATUS "Downloading ${url}")
+  file(DOWNLOAD "${url}" "${archive}" EXPECTED_HASH "SHA256=${hash}" SHOW_PROGRESS STATUS status)
   list(GET status 0 status_code)
   if(NOT status_code EQUAL 0)
     list(GET status 1 status_message)
     file(REMOVE "${archive}")
-    message(FATAL_ERROR "Downloading ${url}/${file} failed: ${status_message}")
+    message(FATAL_ERROR "Downloading ${url} failed: ${status_message}")
   endif()
 
-  # Unpacked beside dev/<folder> and then moved there, so an unpacking cut short never leaves a
-  # dev/<folder> that looks complete.
+  # Unpacked beside dev/llvm-mos and then moved there, so an unpacking cut short never leaves a
+  # dev/llvm-mos that looks complete.
   set(unpacking "${destination}.unpacking")
   file(REMOVE_RECURSE "${unpacking}")
   message(STATUS "Unpacking it into ${destination}")
   file(ARCHIVE_EXTRACT INPUT "${archive}" DESTINATION "${unpacking}")
-  if(NOT EXISTS "${unpacking}/${folder}/${program}")
-    message(FATAL_ERROR "${file} has no ${folder}/${program}")
+  if(NOT EXISTS "${unpacking}/llvm-mos/${program}")
+    message(FATAL_ERROR "${file} has no llvm-mos/${program}")
   endif()
-  file(RENAME "${unpacking}/${folder}" "${destination}")
+  file(RENAME "${unpacking}/llvm-mos" "${destination}")
   file(REMOVE_RECURSE "${unpacking}")
   file(REMOVE "${archive}")
 endfunction()
 
-_gametank_fetch(llvm-mos "bin/mos-clang${GAMETANK_EXECUTABLE_SUFFIX}" "${GAMETANK_LLVM_MOS_URL}" GAMETANK_LLVM_MOS)
+_gametank_fetch_llvm_mos()
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/gametank-toolchain.cmake")
 
 function(gametank_add_rom name)
@@ -178,9 +169,11 @@ function(gametank_add_tiles name)
   if(NOT ARGN)
     message(FATAL_ERROR "gametank_add_tiles(${name}): no configs")
   endif()
-  set(program "tile_palettes${GAMETANK_EXECUTABLE_SUFFIX}")
-  _gametank_fetch(tile_palettes "${program}" "${GAMETANK_TILE_PALETTES_URL}" GAMETANK_TILE_PALETTES)
-  set(tool "${GAMETANK_ROOT}/dev/tile_palettes/${program}")
+  set(tool "${GAMETANK_ROOT}/dev/tile_palettes/tile_palettes${GAMETANK_EXECUTABLE_SUFFIX}")
+  if(NOT EXISTS "${tool}")
+    message(FATAL_ERROR "The tile tool isn't at ${tool}. The release bundle comes with it; in a clone, build "
+      "it (cargo build --release in tools/tile_palettes) and put it there.")
+  endif()
 
   set(output_folder "${CMAKE_CURRENT_BINARY_DIR}/assets")
   foreach(config IN LISTS ARGN)
