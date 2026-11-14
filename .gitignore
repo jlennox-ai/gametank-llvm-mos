@@ -1,0 +1,16 @@
+# build.py's output.
+build/
+build-debug/
+
+# Third-party tools (see README.md, "Setting up"): llvm-mos and, for
+# comparison/compare.py, cc65.
+dev/
+
+# comparison/compare.py's builds.
+comparison/build/
+
+# Python bytecode from the scripts in tools/.
+__pycache__/
+
+# Rust build output.
+target/
