@@ -114,9 +114,17 @@ jobs:
           path: out
           merge-multiple: true
 
-      # The release notes are the tag's message: git tag -a v0.2 -m "What changed".
+      # The release notes are the tag's message: git tag -a v0.2 -m "What changed". (Read from
+      # GitHub, as this job has no checkout.)
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$GITHUB_REF_NAME" out/* --title "gametank-llvm-mos $GITHUB_REF_NAME" --notes-from-tag
+        run: |
+          tag_object=$(gh api "repos/$GH_REPO/git/ref/tags/$GITHUB_REF_NAME" --jq '.object | select(.type == "tag") | .sha')
+          if [ -z "$tag_object" ]; then
+            echo "::error::$GITHUB_REF_NAME has no message for the release notes: tag with git tag -a"
+            exit 1
+          fi
+          gh api "repos/$GH_REPO/git/tags/$tag_object" --jq .message > notes.txt
+          gh release create "$GITHUB_REF_NAME" out/* --title "gametank-llvm-mos $GITHUB_REF_NAME" --notes-file notes.txt
