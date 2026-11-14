@@ -28,26 +28,26 @@ Each program in [`features/`](features/) exits 0 on sim65 when its feature works
 
 | Feature | Standard | cc65 | llvm-mos |
 |---|---|---|---|
-| Declarations after statements | C99 | no: `Variable identifier expected` | yes |
-| Declarations in for loops | C99 | no: `Variable identifier expected` | yes |
-| Designated initializers | C99 | no: `Expression expected` | yes |
-| Compound literals | C99 | no: `Expression expected` | yes |
+| Declarations after statements | C99 | no | yes |
+| Declarations in for loops | C99 | no | yes |
+| Designated initializers | C99 | no | yes |
+| Compound literals | C99 | no | yes |
 | Inline functions | C99 | yes | yes |
-| 64-bit integers: `long long`, `uint64_t` | C99 | no: `Undeclared identifier 'uint64_t'` | yes |
-| Floating point | C89 | no: `Floating point type is currently unsupported` | yes |
-| Structs passed and returned by value | C89 | no: `Function return type 'struct $anon-struct-0001' of size 3 is unsupported` | yes |
+| 64-bit integers: `long long`, `uint64_t` | C99 | no | yes |
+| Floating point, in software | C89 | no | yes |
+| Structs passed and returned by value | C89 | no | yes |
 | Anonymous structs and unions | C11 | yes | yes |
 | `_Static_assert` | C11 | yes | yes |
-| `_Generic` | C11 | no: `Call to undeclared function '_Generic'` | yes |
-| `bool`, `true`, `false` and `nullptr` as keywords | C23 | no: `Undeclared identifier 'bool'` | yes |
-| `typeof` | C23 | no: `Call to undeclared function 'typeof'` | yes |
-| `constexpr` | C23 | no: `',' or ';' expected after top level declarator` | yes |
-| Enums with a fixed underlying type: `enum E : uint8_t` | C23 | no: `Identifier or ';' expected after declaration specifiers` | yes |
+| `_Generic` | C11 | no | yes |
+| `bool`, `true`, `false` and `nullptr` as keywords | C23 | no | yes |
+| `typeof` | C23 | no | yes |
+| `constexpr` | C23 | no | yes |
+| Enums with a fixed underlying type: `enum E : uint8_t` | C23 | no | yes |
 | Binary literals: `0b1010` | C23 | yes | yes |
-| Digit separators: `1'000'000` | C23 | no: `''' expected` | yes |
-| Attributes: `[[nodiscard]]`, `[[maybe_unused]]`, `[[fallthrough]]` | C23 | no: `Identifier or ';' expected after declaration specifiers` | yes |
-| `#embed`: a file's bytes as an initializer | C23 | no: `Preprocessor directive expected` | yes |
-| Classes, templates, constexpr and lambdas | C++ | no: cc65 compiles C only | yes |
+| Digit separators: `1'000'000` | C23 | no | yes |
+| Attributes: `[[nodiscard]]`, `[[maybe_unused]]`, `[[fallthrough]]` | C23 | no | yes |
+| `#embed`: a file's bytes as an initializer | C23 | no | yes |
+| Classes, templates, constexpr and lambdas | C++ | no | yes |
 
 ## The code
 
@@ -77,7 +77,12 @@ void entities_update(void) {
 }
 ```
 
-**cc65**: 211 bytes, 4,701 cycles. It calls cc65's runtime: `mulax5`, `ldaidx`.
+cc65's code calls its runtime: `mulax5`, `ldaidx`.
+
+<table>
+<tr><th>cc65: 211 bytes, 4,701 cycles</th><th>llvm-mos: 81 bytes, 1,250 cycles</th></tr>
+<tr>
+<td valign="top">
 
 ```asm
         stz     M0001
@@ -177,7 +182,8 @@ L0010:  inc     M0001
         jmp     L000D
 ```
 
-**llvm-mos**: 81 bytes, 1,250 cycles.
+</td>
+<td valign="top">
 
 ```asm
         stz     __rc4
@@ -222,6 +228,10 @@ L099E:  clc
         rts
 ```
 
+</td>
+</tr>
+</table>
+
 ### `clamp_add`
 
 ```c
@@ -238,7 +248,12 @@ uint8_t clamp_add(uint8_t value, int8_t delta, uint8_t low, uint8_t high) {
 }
 ```
 
-**cc65**: 80 bytes, 321 cycles. It calls cc65's runtime: `pusha`, `incsp4`, `pushax`, `tosicmp0`.
+cc65's code calls its runtime: `pusha`, `incsp4`, `pushax`, `tosicmp0`.
+
+<table>
+<tr><th>cc65: 80 bytes, 321 cycles</th><th>llvm-mos: 61 bytes, 103 cycles</th></tr>
+<tr>
+<td valign="top">
 
 ```asm
         jsr     pusha
@@ -280,7 +295,8 @@ L0004:  ldx     #$00
         jmp     incsp4
 ```
 
-**llvm-mos**: 61 bytes, 103 cycles.
+</td>
+<td valign="top">
 
 ```asm
         stx     __rc4
@@ -318,6 +334,10 @@ L09E4:  lda     __rc2
         rts
 ```
 
+</td>
+</tr>
+</table>
+
 ### `grid_full_rows`
 
 ```c
@@ -340,7 +360,12 @@ uint8_t grid_full_rows(void) {
 }
 ```
 
-**cc65**: 76 bytes, 16,654 cycles. It calls cc65's runtime: `mulax10`.
+cc65's code calls its runtime: `mulax10`.
+
+<table>
+<tr><th>cc65: 76 bytes, 16,654 cycles</th><th>llvm-mos: 46 bytes, 2,682 cycles</th></tr>
+<tr>
+<td valign="top">
 
 ```asm
         stz     M0001
@@ -378,7 +403,8 @@ L0011:  lda     M0001
         rts
 ```
 
-**llvm-mos**: 46 bytes, 2,682 cycles.
+</td>
+<td valign="top">
 
 ```asm
         ldx     #$39
@@ -408,6 +434,10 @@ L0A00:  inx
         rts
 ```
 
+</td>
+</tr>
+</table>
+
 ### `hash_bytes`
 
 ```c
@@ -423,7 +453,12 @@ uint16_t hash_bytes(const uint8_t* data, uint8_t length) {
 }
 ```
 
-**cc65**: 86 bytes, 26,753 cycles. It calls cc65's runtime: `pusha`, `pushax`, `tosumula0`, `incsp3`.
+cc65's code calls its runtime: `pusha`, `pushax`, `tosumula0`, `incsp3`.
+
+<table>
+<tr><th>cc65: 86 bytes, 26,753 cycles</th><th>llvm-mos: 90 bytes, 7,605 cycles</th></tr>
+<tr>
+<td valign="top">
 
 ```asm
         jsr     pusha
@@ -465,7 +500,8 @@ L0003:  lda     M0001
         jmp     incsp3
 ```
 
-**llvm-mos**: 90 bytes, 7,605 cycles.
+</td>
+<td valign="top">
 
 ```asm
         ldx     #$15
@@ -522,6 +558,10 @@ L0A6C:  lda     #$5
         rts
 ```
 
+</td>
+</tr>
+</table>
+
 ### `copy_rows`
 
 ```c
@@ -540,7 +580,12 @@ void copy_rows(uint8_t* destination, const uint8_t* source, uint8_t width, uint8
 }
 ```
 
-**cc65**: 95 bytes, 25,489 cycles. It calls cc65's runtime: `pusha`, `addeqysp`, `incsp7`.
+cc65's code calls its runtime: `pusha`, `addeqysp`, `incsp7`.
+
+<table>
+<tr><th>cc65: 95 bytes, 25,489 cycles</th><th>llvm-mos: 54 bytes, 7,146 cycles</th></tr>
+<tr>
+<td valign="top">
 
 ```asm
         jsr     pusha
@@ -592,7 +637,8 @@ L0007:  ldy     #$05
 L0003:  jmp     incsp7
 ```
 
-**llvm-mos**: 54 bytes, 7,146 cycles.
+</td>
+<td valign="top">
 
 ```asm
         cpx     #$0
@@ -626,3 +672,7 @@ L0A7A:  lda     (__rc4),y
         bne     L0A78
 L0AA4:  rts
 ```
+
+</td>
+</tr>
+</table>

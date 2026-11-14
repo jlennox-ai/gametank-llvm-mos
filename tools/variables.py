@@ -372,7 +372,7 @@ def main():
     if len(arguments) not in (2, 3) or (len(arguments) == 3 and arguments[2] != "--no-static-stack"):
         sys.exit("usage: variables.py <build directory> <name> [--no-static-stack]")
     build, name = arguments[0], arguments[1]
-    write_variables(debug_files.elf_path(build, name), os.path.join(debug_files.ROOT, build, "variables.dbg"),
+    write_variables(debug_files.elf_path(build, name), os.path.join(build, "variables.dbg"),
                     static_stack=len(arguments) == 2)
 
 

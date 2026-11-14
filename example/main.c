@@ -1,5 +1,5 @@
 // The example program: a block moved around the screen with pad 1's d-pad. A, B and C change
-// its colour. Replace src/ with your game: every .c and .s in src/ is built.
+// its colour. Every .c and .s in this folder is built, with the SDK: see build.sh or build.bat.
 #include <stdint.h>
 #include "gametank.h"
 

@@ -1,6 +1,6 @@
 """Writes <build>/out.map, the symbol list the GameTank emulator loads (the label box and
 breakpoints in its code stepper, F7), from the label file <build>/<name>.lbl. The build
-folder is build or build-debug.
+folder is <project>/build or <project>/build-debug.
 
 The emulator reads the "Exports list by value" section of a map file in cc65's ld65 format,
 which is the only map format it knows, so this writes that section from the label file's
@@ -11,7 +11,6 @@ import os
 import re
 import sys
 
-ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 LABEL_LINE = re.compile(r"^al ([0-9A-F]+) \.(\S+)$")
 
 
@@ -34,7 +33,7 @@ def read_symbols(path):
 def main():
     if len(sys.argv) != 3:
         sys.exit("usage: emulator_map.py <build directory> <name>")
-    build = os.path.join(ROOT, sys.argv[1])
+    build = sys.argv[1]
     labels_path = os.path.join(build, f"{sys.argv[2]}.lbl")
     if not os.path.exists(labels_path):
         sys.exit(f"{labels_path} not found: build first")

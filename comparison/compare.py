@@ -263,16 +263,14 @@ def llvm_mos_listing(program, name):
 # Language features.
 
 def feature_result(build, source, folder):
-    """'yes', or why not: the compiler's first error, or a wrong result."""
+    """'yes' or 'no', and why not: the compiler's first error, or a wrong result."""
     try:
         program = build([source], folder, "program")
     except CommandError as error:
         errors = [line for line in error.output.splitlines() if re.search(r"\b(error|fatal)\b", line, re.IGNORECASE)]
-        message = first_line(errors[0] if errors else error.output)
-        message = re.sub(r"^(?:.*?:\d+(?::\d+)?: )?(?:error|fatal): ", "", message, flags=re.IGNORECASE)
-        return f"no: `{message}`"
+        return "no", first_line(errors[0] if errors else error.output)
     code, _ = run_sim65(program)
-    return "yes" if code == 0 else "builds, but runs wrong"
+    return ("yes", "") if code == 0 else ("no", f"builds, but exits {code}")
 
 
 def feature_results():
@@ -289,17 +287,27 @@ def feature_results():
             raise CommandError([source], "the first line isn't \"// Title (standard)\"")
         folder = os.path.join(BUILD, "features", stem)
         if extension == ".cpp":
-            cc65 = "no: cc65 compiles C only"
+            cc65 = ("no", "cc65 compiles C only")
         else:
             cc65 = feature_result(build_cc65, source, os.path.join(folder, "cc65"))
         llvm_mos = feature_result(build_llvm_mos, source, os.path.join(folder, "llvm-mos"))
-        results.append((match.group(1), match.group(2), cc65, llvm_mos))
-        print(f"{file_name}: cc65 {cc65}; llvm-mos {llvm_mos}")
+        results.append((match.group(1), match.group(2), cc65[0], llvm_mos[0]))
+        # Why not, for the console only.
+        print(f"{file_name}: cc65 {' '.join(cc65).strip()}; llvm-mos {' '.join(llvm_mos).strip()}")
     return results
 
 
 def table_cell(text):
     return text.replace("|", "\\|")
+
+
+def side_by_side(left_title, left_code, right_title, right_code):
+    """Two listings in columns. Markdown has no columns, so it's an HTML table; GitHub renders the
+    code blocks in its cells as markdown because of the blank lines around them."""
+    lines = ["<table>", f"<tr><th>{left_title}</th><th>{right_title}</th></tr>", "<tr>"]
+    for code in (left_code, right_code):
+        lines += ['<td valign="top">', "", "```asm", code, "```", "", "</td>"]
+    return lines + ["</tr>", "</table>"]
 
 
 def write_results(cc65_version, llvm_mos_version, cc65_bench, llvm_mos_bench, cc65_size, llvm_mos_size,
@@ -350,7 +358,7 @@ def write_results(cc65_version, llvm_mos_version, cc65_bench, llvm_mos_bench, cc
     ]
     for name in FUNCTIONS:
         cc65_code, calls = cc65_listing(os.path.join(os.path.dirname(cc65_program), "examples.s"), name)
-        runtime = f" It calls cc65's runtime: {', '.join(f'`{call}`' for call in calls)}." if calls else ""
+        runtime = f"cc65's code calls its runtime: {', '.join(f'`{call}`' for call in calls)}." if calls else ""
         lines += [
             "",
             f"### `{name}`",
@@ -359,17 +367,11 @@ def write_results(cc65_version, llvm_mos_version, cc65_bench, llvm_mos_bench, cc
             function_source(name),
             "```",
             "",
-            f"**cc65**: {cc65_size[name]} bytes, {cc65_bench[name][0]:,} cycles.{runtime}",
+            runtime,
             "",
-            "```asm",
-            cc65_code,
-            "```",
-            "",
-            f"**llvm-mos**: {llvm_mos_size[name]} bytes, {llvm_mos_bench[name][0]:,} cycles.",
-            "",
-            "```asm",
-            llvm_mos_listing(llvm_mos_program, name),
-            "```",
+            *side_by_side(f"cc65: {cc65_size[name]} bytes, {cc65_bench[name][0]:,} cycles", cc65_code,
+                          f"llvm-mos: {llvm_mos_size[name]} bytes, {llvm_mos_bench[name][0]:,} cycles",
+                          llvm_mos_listing(llvm_mos_program, name)),
         ]
     with open(RESULTS, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("\n".join(lines) + "\n")

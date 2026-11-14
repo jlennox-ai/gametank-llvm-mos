@@ -22,9 +22,9 @@
 #define GT_BUTTON_START 0x80
 
 // Put before a function to see all its variables in the emulator's source view, everywhere in
-// it: in the debug build (build.py debug), the function is compiled without optimization, so
-// every variable keeps a place in memory for its whole scope (optimized code drops values it
-// no longer needs, which shows as "optimized out"). Elsewhere it does nothing.
+// it: in the debug build (build.py <project> debug), the function is compiled without
+// optimization, so every variable keeps a place in memory for its whole scope (optimized code
+// drops values it no longer needs, which shows as "optimized out"). Elsewhere it does nothing.
 //   GT_DEBUG_FUNCTION static void player_update(void) {
 #ifdef GT_DEBUG_BUILD
 #define GT_DEBUG_FUNCTION __attribute__((optnone, noinline))

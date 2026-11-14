@@ -1,7 +1,8 @@
 """Writes a label file and the emulator's source map and variables for a build, from the
 linked ELF <build>/<name>.gtr.elf: <build>/<name>.lbl, <build>/sourcemap.dbg and
 <build>/variables.dbg (see variables.py). tools/emulator_map.py then makes out.map from the
-label file.
+label file. The build directory is in the project folder (<project>/build), and the emulator
+looks source files up relative to the project folder.
 
 The label file has a VICE-style line per symbol ("al 008000 .main"), from llvm-nm.
 
@@ -33,9 +34,13 @@ ROW = re.compile(r"^0x([0-9a-f]+)\s+(\d+)\s+\d+\s+(\d+)\s+\d+\s+\d+\s+\d+\s*(.*)
 
 
 def elf_path(build, name):
-    """The linked ELF of the build of <name> in the build directory (relative to the project
-    folder), as build.py names it."""
-    return os.path.join(ROOT, build, f"{name}.gtr.elf")
+    """The linked ELF of the build of <name> in the build directory, as build.py names it."""
+    return os.path.join(build, f"{name}.gtr.elf")
+
+
+def project_folder(build):
+    """The project folder a build directory is in."""
+    return os.path.dirname(os.path.abspath(build))
 
 
 def run_tool(name, *arguments):
@@ -52,9 +57,9 @@ def unescape(text):
     return text.replace("\\\\", "\\")
 
 
-def project_path(path):
+def project_path(path, project):
     """A source path as the emulator wants it: relative to the project folder."""
-    return os.path.relpath(os.path.normpath(os.path.join(ROOT, path)), ROOT)
+    return os.path.relpath(os.path.normpath(os.path.join(project, path)), project)
 
 
 def write_labels(elf_path, labels_path):
@@ -72,8 +77,9 @@ def write_labels(elf_path, labels_path):
         handle.write("\n".join(lines) + "\n")
 
 
-def read_line_rows(elf_path):
-    """Returns [(start, end, source path, line)]: the address range each line's code covers."""
+def read_line_rows(elf_path, project):
+    """Returns [(start, end, source path, line)]: the address range each line's code covers, with
+    the source path relative to the project folder."""
     rows = []
     directories = {}
     files = {}
@@ -114,8 +120,8 @@ def read_line_rows(elf_path):
                 entry = files[previous_file]
                 # A relative directory is relative to directory 0, the compiler's working folder.
                 directory = os.path.join(directories[0], directories[entry["directory"]])
-                rows.append((previous_address, address, project_path(os.path.join(directory, entry["name"])),
-                             previous_line))
+                rows.append((previous_address, address,
+                             project_path(os.path.join(directory, entry["name"]), project), previous_line))
         if "end_sequence" in flags:
             sequence = []
         else:
@@ -130,11 +136,11 @@ def segment_index(address):
     return None
 
 
-def write_source_map(elf_path, source_map_path):
+def write_source_map(elf_path, project, source_map_path):
     file_ids = {}
     spans = []
     lines = []
-    for start, end, path, source_line in read_line_rows(elf_path):
+    for start, end, path, source_line in read_line_rows(elf_path, project):
         segment = segment_index(start)
         # Code outside the program's two banks (none, today) can't be looked up by the emulator.
         if segment is None:
@@ -163,12 +169,11 @@ def main():
     elf = elf_path(build, name)
     if not os.path.exists(elf):
         sys.exit(f"{elf} not found: run build.py")
-    build_folder = os.path.join(ROOT, build)
-    write_labels(elf, os.path.join(build_folder, f"{name}.lbl"))
-    write_source_map(elf, os.path.join(build_folder, "sourcemap.dbg"))
+    write_labels(elf, os.path.join(build, f"{name}.lbl"))
+    write_source_map(elf, project_folder(build), os.path.join(build, "sourcemap.dbg"))
     # Imported here: variables uses this module's helpers.
     import variables
-    variables.write_variables(elf, os.path.join(build_folder, "variables.dbg"), static_stack=len(arguments) == 2)
+    variables.write_variables(elf, os.path.join(build, "variables.dbg"), static_stack=len(arguments) == 2)
 
 
 if __name__ == "__main__":
