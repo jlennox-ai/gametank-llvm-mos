@@ -11,10 +11,7 @@ using [llvm-mos](https://llvm-mos.org) for Windows and Linux.
 2. **Python 3.8+**: For writing the debug files. Windows users can get it from
    [python.org](https://www.python.org/downloads/).
 3. **llvm-mos**: [llvm-mos SDK](https://github.com/llvm-mos/llvm-mos-sdk/releases) is downloaded automatically on first use.
-4. **The tile tool**: only if you use [Graphics](#graphics): download `tile_palettes` for your
-   system from this repository's [releases](https://github.com/jlennox-ai/gametank-llvm-mos/releases)
-   and unpack it into `dev/`, so that `dev/tile_palettes/tile_palettes` (`.exe` on Windows)
-   exists. Or install [Rust](https://rustup.rs) and the build compiles it.
+4. **The tile tool**: See [graphics.md](graphics.md).
 5. **An emulator**:
    [GameTank Emulator](https://github.com/clydeshaffer/GameTankEmulator) or
    [GameTank Emulator Plus](https://github.com/jlennox-ai/GameTankEmulatorPlus)

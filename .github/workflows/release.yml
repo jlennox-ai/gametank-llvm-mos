@@ -114,10 +114,9 @@ jobs:
           path: out
           merge-multiple: true
 
+      # The release notes are the tag's message: git tag -a v0.2 -m "What changed".
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" out/* --title "gametank-llvm-mos $GITHUB_REF_NAME" --notes \
-            "gametank-llvm-mos-$GITHUB_REF_NAME-<system>: this repository, with the tile tool already built into dev/. Unpack it and build the example with example/build.sh (Linux) or example\\build.bat (Windows); the first build downloads llvm-mos. tile_palettes-<system>: the tile tool on its own, which a clone of the repository downloads when it needs it."
+        run: gh release create "$GITHUB_REF_NAME" out/* --title "gametank-llvm-mos $GITHUB_REF_NAME" --notes-from-tag
